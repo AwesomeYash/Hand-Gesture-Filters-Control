@@ -35,7 +35,7 @@ def filterSepia(frame: np.ndarray) -> np.ndarray:
     """
     sepia_kernel = np.array([[0.272, 0.534, 0.131],
                              [0.349, 0.686, 0.168],
-                             [0.393, 0.769, 0.189]]), dtype=np.float32)
+                             [0.393, 0.769, 0.189]], dtype=np.float32)
 
     # Ensuring 3 channel input
     if len(frame.shape) == 2 or frame.shape[2] == 1:
@@ -44,8 +44,9 @@ def filterSepia(frame: np.ndarray) -> np.ndarray:
     # Converting to float32 for precision during matrix multiplication
     frame_float = frame.astype(np.float32)
     sepia_frame = cv2.transform(frame_float, sepia_kernel)
+    dst = np.clip(sepia_frame, 0, 255).astype(np.uint8)
 
-    return sepia_frame
+    return dst
 
 def filterNegative(frame: np.ndarray) -> np.ndarray:
     """
@@ -59,9 +60,9 @@ def coolFilter(frame: np.ndarray) -> np.ndarray:
     """
     b, g, r = cv2.split(frame)
 
-    b = np.clip(b + 50, 0, 255).astype(np.uint8)
-    r = np.clip(r - 50, 0, 255).astype(np.uint8)
-
+    b = np.clip(b.astype(np.int16) + 50, 0, 255).astype(np.uint8)
+    g = np.clip(g.astype(np.int16) - 10, 0, 255).astype(np.uint8)
+    r = np.clip(r.astype(np.int16) - 40, 0, 255).astype(np.uint8)
     cool_frame = cv2.merge((b, g, r))
 
     return cool_frame
@@ -72,8 +73,9 @@ def warmFilter(frame: np.ndarray) -> np.ndarray:
     """
     b, g, r = cv2.split(frame)
 
-    b = np.clip(b - 50, 0, 255).astype(np.uint8)
-    r = np.clip(r + 50, 0, 255).astype(np.uint8)
+    b = np.clip(b.astype(np.int16) - 50, 0, 255).astype(np.uint8)
+    r = np.clip(r.astype(np.int16) + 50, 0, 255).astype(np.uint8)
+    g = np.clip(g.astype(np.int16) + 10, 0, 255).astype(np.uint8)
 
     warm_frame = cv2.merge((b, g, r))
 
@@ -114,36 +116,39 @@ def blurFilter(frame: np.ndarray) -> np.ndarray:
 
     return dst
 
+def blur5x5(frame: np.ndarray) -> np.ndarray:
+    """
+    Blur 5x5 Filter
+    """
+    return cv2.GaussianBlur(frame, (15, 15), 0)
+
 def sobelX(frame: np.ndarray) -> np.ndarray:
     """
     Sobel X Filter
     """
-    sobel_x = cv2.Sobel(frame, cv2.CV_16S, dx=1, dy=0, ksize=3)
-    
+    sobel_x = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    sobel_x = cv2.Sobel(sobel_x, cv2.CV_32F, dx=1, dy=0, ksize=3)
+
     return sobel_x
 
 def sobelY(frame: np.ndarray) -> np.ndarray:
     """
     Sobel Y Filter
     """
-    sobel_y = cv2.Sobel(frame, cv2.CV_16S, dx=0, dy=1, ksize=3)
-    
+    sobel_y = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    sobel_y = cv2.Sobel(sobel_y, cv2.CV_32F, dx=0, dy=1, ksize=3)
+
     return sobel_y
 
 def magnitudeSobel(sx: np.ndarray, sy: np.ndarray) -> np.ndarray:
     """
     Magnitude Sobel Filter
     """
-    channels= []
-    for c in range(sx.shape[2]):
-        mag = cv2.magnitude(sx[:, :, c].astype(np.float32), sy[:, :, c].astype(np.float32))
-        channels.append(mag)
-
-    magnitude = np.merge(channels)
-    magnitude = np.convertScaleAbs(magnitude)
+    mag = cv2.magnitude(sx, sy)
+    dst = cv2.convertScaleAbs(mag)
+    dst = cv2.cvtColor(dst, cv2.COLOR_GRAY2BGR)
+    return dst
         
-    return cv2.magnitude
-
 def embossFilter(frame: np.ndarray) -> np.ndarray:
     """
     Emboss Filter
@@ -190,6 +195,8 @@ def faceFinder (frame: np.ndarray) -> np.ndarray:
             boxHeight = min(h - y, boxHeight)
 
             # Draw a rectangle around the detected face
-            cv2.rectangle(dst, (x, y), (x + boxWidth, y + boxHeight), (0, 255, 0), 2)
+            cv2.rectangle(dst, (x, y), (x + boxWidth, y + boxHeight), # Dimensions
+                        (0, 255, 0), 2)   # Color and thickness of BBox
 
     return dst
+
