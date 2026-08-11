@@ -1,6 +1,12 @@
 from matplotlib.pyplot import hsv
 import numpy as np
 import cv2
+import mediapipe as mp
+
+
+# ==============================
+# Regular Filters
+# ==============================
 
 def defaultGreyscale(frame: np.ndarray) -> np.ndarray:
     """
@@ -59,3 +65,131 @@ def coolFilter(frame: np.ndarray) -> np.ndarray:
     cool_frame = cv2.merge((b, g, r))
 
     return cool_frame
+
+def warmFilter(frame: np.ndarray) -> np.ndarray:
+    """
+    Warm Filter
+    """
+    b, g, r = cv2.split(frame)
+
+    b = np.clip(b - 50, 0, 255).astype(np.uint8)
+    r = np.clip(r + 50, 0, 255).astype(np.uint8)
+
+    warm_frame = cv2.merge((b, g, r))
+
+    return warm_frame
+
+def colorFilter(frame: np.ndarray, color:str) -> np.ndarray:
+    """
+    Color Highlight Filter
+    """
+    # Convert the frame to HSV color space
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    # Define color ranges for highlighting
+    lower_bound = np.array([0, 0, 70])
+    upper_bound = np.array([0, 0, 255])
+
+    mask = cv2.inRange(hsv, lower_bound, upper_bound)
+    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    gray_frame_bgr = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2BGR)
+
+    dst = gray_frame_bgr.copy()
+    dst[mask != 0] = frame[mask != 0]
+
+    return dst
+
+# ==============================
+# Convolution Filters
+# ==============================
+
+def blurFilter(frame: np.ndarray) -> np.ndarray:
+    """
+    Blur Filter
+    """
+    kernel = np.array([1, 2, 4, 2, 1], dtype=np.float32)
+    kernel = kernel / np.sum(kernel)  # Normalize the kernel
+
+    dst = cv2.sepFilter2D(frame, -1, kernel, kernel)
+
+    return dst
+
+def sobelX(frame: np.ndarray) -> np.ndarray:
+    """
+    Sobel X Filter
+    """
+    sobel_x = cv2.Sobel(frame, cv2.CV_16S, dx=1, dy=0, ksize=3)
+    
+    return sobel_x
+
+def sobelY(frame: np.ndarray) -> np.ndarray:
+    """
+    Sobel Y Filter
+    """
+    sobel_y = cv2.Sobel(frame, cv2.CV_16S, dx=0, dy=1, ksize=3)
+    
+    return sobel_y
+
+def magnitudeSobel(sx: np.ndarray, sy: np.ndarray) -> np.ndarray:
+    """
+    Magnitude Sobel Filter
+    """
+    channels= []
+    for c in range(sx.shape[2]):
+        mag = cv2.magnitude(sx[:, :, c].astype(np.float32), sy[:, :, c].astype(np.float32))
+        channels.append(mag)
+
+    magnitude = np.merge(channels)
+    magnitude = np.convertScaleAbs(magnitude)
+        
+    return cv2.magnitude
+
+def embossFilter(frame: np.ndarray) -> np.ndarray:
+    """
+    Emboss Filter
+    """
+    emboss_kernel = np.array([[ -2, -1, 0],
+                              [ -1,  1, 1],
+                              [  0,  1, 2]], dtype=np.float32)
+
+    dst = cv2.filter2D(frame, -1, emboss_kernel)
+    
+    return dst
+
+# ==============================
+# Face Recognition Filters
+# ==============================
+
+faceDetection = mp.solutions.face_detection.FaceDetection(
+                model_selection = 1, 
+                min_detection_confidence = 0.6
+                )
+
+def faceFinder (frame: np.ndarray) -> np.ndarray:
+    """
+    Face Finder Function
+    """
+    dst = frame.copy()
+    h, w, _ = frame.shape
+
+    # Convert the frame to RGB for face detection
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = faceDetection.process(rgb_frame)
+
+    if results.detections:
+        for detection in results.detections:
+            bbox = detection.location_data.relative_bounding_box
+            x = int(bbox.xmin * w)
+            y = int(bbox.ymin * h)
+            boxWidth = int(bbox.width * w)
+            boxHeight = int(bbox.height * h)
+
+            x = max(0, x)
+            y = max(0, y)
+            boxWidth = min(w - x, boxWidth)
+            boxHeight = min(h - y, boxHeight)
+
+            # Draw a rectangle around the detected face
+            cv2.rectangle(dst, (x, y), (x + boxWidth, y + boxHeight), (0, 255, 0), 2)
+
+    return dst
