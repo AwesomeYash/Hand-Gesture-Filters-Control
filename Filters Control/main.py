@@ -3,7 +3,8 @@ import numpy as np
 from filters import (
     blur5x5, defaultGreyscale, greyscale, filterSepia, filterNegative,
     coolFilter, warmFilter, colorFilter,
-    blurFilter, sobelX, sobelY, magnitudeSobel, embossFilter, faceFinder
+    blurFilter, sobelX, sobelY, magnitudeSobel, embossFilter, faceFinder,
+    faceBlurFilter
 )
 
 FILTERS = {
@@ -18,6 +19,7 @@ FILTERS = {
     ord('9'): ("Emboss", embossFilter),
     ord('0'): ("Sobel Magnitude", magnitudeSobel),
     ord('f'): ("Face Finder", faceFinder),
+    ord('r'): ("Face Blur", faceBlurFilter),
 }
 
 WIDTH, HEIGHT = 960, 720

@@ -2,6 +2,7 @@ from matplotlib.pyplot import hsv
 import numpy as np
 import cv2
 import mediapipe as mp
+from scipy.fft import dst
 
 
 # ==============================
@@ -200,3 +201,44 @@ def faceFinder (frame: np.ndarray) -> np.ndarray:
 
     return dst
 
+def faceBlurFilter(frame: np.ndarray) -> np.ndarray:
+    """
+    Face Blur Function
+    """
+
+    MinFaceWidth = 50
+    blurKernelSize = (81, 81)
+
+    dst = frame.copy()
+    h, w, _ = frame.shape
+
+    # Convert the frame to RGB for face detection
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = faceDetection.process(rgb_frame)
+
+    if results.detections:
+        for detection in results.detections:
+            bbox = detection.location_data.relative_bounding_box
+            x = int(bbox.xmin * w)
+            y = int(bbox.ymin * h)
+            boxWidth = int(bbox.width * w)
+            boxHeight = int(bbox.height * h)
+
+            x = max(0, x)
+            y = max(0, y)
+            boxWidth = min(boxWidth, w - x)
+            boxHeight = min(boxHeight, h - y)
+
+            if boxWidth < MinFaceWidth or boxHeight < MinFaceWidth:
+                continue
+
+            face_roi = dst[y:y + boxHeight, x:x + boxWidth]
+            if face_roi.size == 0:
+                continue
+
+            blurred = cv2.GaussianBlur(face_roi, blurKernelSize, 0)
+            dst[y:y + boxHeight, x:x + boxWidth] = blurred
+
+            cv2.rectangle(dst, (x, y), (x + boxWidth, y + boxHeight), (170, 120, 110), 3)
+    
+    return dst
