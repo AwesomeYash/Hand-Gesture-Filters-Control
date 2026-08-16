@@ -77,6 +77,7 @@ def draw_radial_menu(frame, center, cursor, active_segment, dwell_progress):
 
     cv2.circle(frame, center, INNER_RADIUS, (30, 30, 30), -1)
 
+
     for i, name in enumerate(FILTER_NAMES):
         mid_angle = math.radians(i * SEGMENT_ANGLE + SEGMENT_ANGLE / 2)
         label_radius = (OUTER_RADIUS + INNER_RADIUS) // 2
@@ -208,3 +209,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
