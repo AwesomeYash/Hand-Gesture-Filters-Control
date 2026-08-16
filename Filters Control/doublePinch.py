@@ -9,7 +9,7 @@ from filters import (
     coolFilter, warmFilter, colorFilter)
 
 WIDTH, HEIGHT = 960, 720
-PINCH_THRESHOLD = 40
+PINCH_THRESHOLD = 30
 CONSECUTIVE_FRAMES_REQUIRED = 3 # No of frames to confirm a pinch gesture or change
 
 FILTERS_FUNC = [defaultGreyscale, blur5x5, coolFilter, filterSepia, warmFilter, colorFilter]
@@ -96,8 +96,6 @@ def main():
 
             if smoothed_both_pinch and not was_smoothed:
                 filter_index = (filter_index + 1) % len(FILTERS_FUNC)
-#                box = (int(pinch_point[0][0]), int(pinch_point[0][1]),
-#                       int(pinch_point[1][0]), int(pinch_point[1][1]))
 
         # Resize box if actively smoothed both pinch
         if smoothed_both_pinch and len(pinch_point) == 2:
